@@ -57,6 +57,4 @@ jobs:
       with:
         delete_workflows: true
         workflows_keep_day: 5
-        workflows_name: Update rtp2httpd Version   # 这里替换为你的 workflow 文件名（不带.yml）
-        delete_releases: false           # 如果你不想删除 releases，设置为 false
         gh_token: ${{ secrets.GITHUB_TOKEN }}
