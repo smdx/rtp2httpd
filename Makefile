@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=rtp2httpd
-PKG_VERSION:=3.0.4
+PKG_VERSION:=3.1.0
 PKG_RELEASE:=1
 PKG_MAINTAINER:=Stackie Jia <jsq2627@gmail.com>
 
