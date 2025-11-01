@@ -1,0 +1,60 @@
+name: Update Package Version
+
+on:
+  workflow_dispatch:  # 允许手动触发
+  schedule:
+    - cron: '0 0 * * *'  # 每天UTC时间0:00运行（北京时间8:00）
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Get latest release version
+      id: get_version
+      run: |
+        # 获取最新的release标签，并去掉v前缀
+        LATEST_VERSION=$(curl -s https://api.github.com/repos/stackia/rtp2httpd/releases/latest | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
+        echo "Latest version: $LATEST_VERSION"
+        echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Update Makefile version
+      id: update_makefile
+      run: |
+        # 检查版本是否有变化
+        CURRENT_VERSION=$(grep 'PKG_VERSION:=' Makefile | cut -d'=' -f2)
+        LATEST_VERSION="${{ steps.get_version.outputs.version }}"
+        
+        echo "Current version: $CURRENT_VERSION"
+        echo "Latest version: $LATEST_VERSION"
+        
+        if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+          # 更新Makefile中的版本号
+          sed -i "s/PKG_VERSION:=.*/PKG_VERSION:=$LATEST_VERSION/" Makefile
+          echo "Makefile updated successfully"
+          echo "changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "Version is already up to date"
+          echo "changed=false" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Commit and push changes
+      if: steps.update_makefile.outputs.changed == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add Makefile
+        git commit -m "chore: update PKG_VERSION to ${{ steps.get_version.outputs.version }}"
+        git push
+        
+    - name: Delete workflow runs
+      uses: ophub/delete-releases-workflows@main
+      with:
+        delete_workflows: true
+        workflows_keep_day: 5
+        gh_token: ${{ secrets.GITHUB_TOKEN }}
